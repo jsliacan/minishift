@@ -696,6 +696,7 @@ func initStartFlags() *flag.FlagSet {
 	startFlagSet.String(configCmd.HostOnlyCIDR.Name, "192.168.99.1/24", "The CIDR to be used for the minishift VM. (Only supported with VirtualBox driver.)")
 	startFlagSet.Bool(configCmd.SkipPreflightChecks.Name, false, "Skip the startup checks.")
 	startFlagSet.String(configCmd.OpenshiftVersion.Name, version.GetOpenShiftVersion(), fmt.Sprintf("The OpenShift version to run, eg. latest or %s", version.GetOpenShiftVersion()))
+	startFlagSet.String(configCmd.OcpFlag.Name, "", fmt.Sprintf("The OpenShift version to run, eg. latest or %s; going to deprecate from v3.8, use 'openshift-version' flag instead", version.GetOpenShiftVersion()))
 
 	startFlagSet.String(configCmd.RemoteIPAddress.Name, "", "IP address of the remote machine to provision OpenShift on")
 	startFlagSet.String(configCmd.RemoteSSHUser.Name, "", "The username of the remote machine to provision OpenShift on")
@@ -781,12 +782,15 @@ func ensureNotRunning(client *libmachine.Client, machineName string) {
 
 // Make sure the version actually has a 'v' prefix. See https://github.com/minishift/minishift/issues/410
 func addVersionPrefixToOpenshiftVersion() {
+	if viper.GetString(configCmd.OcpFlag.Name) != "" {
+		viper.Set(configCmd.OpenshiftVersion.Name, viper.GetString(configCmd.OcpFlag.Name))
+	}
 	requestedVersion := viper.GetString(configCmd.OpenshiftVersion.Name)
+
 	if !strings.HasPrefix(requestedVersion, constants.VersionPrefix) {
 		requestedVersion = constants.VersionPrefix + requestedVersion
 		// this will make sure the right version is set in case the version comes from config file
 		viper.Set(configCmd.OpenshiftVersion.Name, requestedVersion)
-
 		// if the version was specified via the CLI we need to update the flag value
 		startCmd.Flags().Lookup(configCmd.OpenshiftVersion.Name).Value.Set(requestedVersion)
 	}

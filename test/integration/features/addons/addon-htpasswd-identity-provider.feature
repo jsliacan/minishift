@@ -3,7 +3,7 @@ Feature: Configures single identity for OpenShift login instance
 This add-on configures OpenShift to use only a single identity provider
 
   Scenario: User can enable the htpasswd-identity-provider
-     When executing "minishift addons enable htpasswd-identity-provider" succeeds
+     When executing "minishift addons enable htpasswd-identity-provider --priority 5" succeeds
      Then stdout should contain "Add-on 'htpasswd-identity-provider' enabled"
 
   Scenario: User can start Minishift with htpasswd-identity-provider add-on enabled

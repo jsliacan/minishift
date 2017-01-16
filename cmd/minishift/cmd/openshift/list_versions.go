@@ -17,14 +17,12 @@ limitations under the License.
 package openshift
 
 import (
-	"os"
-
 	"fmt"
+	"os"
 
 	"github.com/minishift/minishift/pkg/minikube/constants"
 	openshiftVersions "github.com/minishift/minishift/pkg/minishift/openshift/version"
 	"github.com/minishift/minishift/pkg/util/os/atexit"
-	"github.com/minishift/minishift/pkg/version"
 	"github.com/spf13/cobra"
 )
 
@@ -37,9 +35,9 @@ var getVersionsCmd = &cobra.Command{
 }
 
 func runVersionList(cmd *cobra.Command, args []string) {
-	err := openshiftVersions.PrintUpstreamVersions(os.Stdout, constants.MinimumSupportedOpenShiftVersion, version.GetOpenShiftVersion())
+	err := openshiftVersions.PrintDownstreamVersions(os.Stdout, constants.MinimumSupportedOpenShiftVersion)
 	if err != nil {
-		atexit.ExitWithMessage(1, fmt.Sprintf("Error while trying to get list of available Origin versions: %s", err.Error()))
+		atexit.ExitWithMessage(1, fmt.Sprintf("Error while trying to get list of available OCP versions: %s", err.Error()))
 	}
 }
 

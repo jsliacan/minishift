@@ -131,7 +131,7 @@ cluster in VM provided by Minishift.
      Then stdout should contain "Patching OpenShift configuration"
 
   Scenario: Verifying configuration on OpenShift master
-    Given user waits for "30s"
+    Given user waits for "120s"
      When executing "minishift openshift config view" succeeds
      Then stdout is YAML which contains key "assetConfig.logoutURL" with value matching "http://www\.minishift\.io"
 
@@ -155,6 +155,13 @@ cluster in VM provided by Minishift.
       """
       use 'minishift openshift component list' to find valid components
       """
+
+  Scenario: Add a component to running openshift cluster
+      When executing "minishift openshift component add service-catalog" succeeds
+       And stdout should contain
+       """
+       Finished installing "openshift-service-catalog"
+       """
 
   Scenario: Deleting the Minishift instance
     Given Minishift has state "Running"

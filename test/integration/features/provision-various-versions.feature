@@ -5,7 +5,8 @@ Feature: Provision all major OpenShift versions
   Scenario Outline: Provision all major OpenShift versions
     Given Minishift has state "Does Not Exist"
       And image caching is disabled
-     When executing "minishift start --openshift-version <serverVersion>" succeeds
+     # TODO: Replace --ocp-tag with --openshift-version in v3.8
+     When executing "minishift start --ocp-tag <serverVersion>" succeeds
      Then Minishift should have state "Running"
      When executing "minishift openshift version" succeeds
      Then stdout should contain
@@ -27,7 +28,7 @@ Feature: Provision all major OpenShift versions
 
   Examples:
     | serverVersion | ocVersion |
-    | v3.10.0       | v3.10.0   |
+    | v3.10.45      | v3.10.45  |
 
   Scenario: Provision latest OpenShift version
     Given Minishift has state "Does Not Exist"

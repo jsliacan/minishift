@@ -1,0 +1,10 @@
+# Name: eap-cd
+# Description: Imports EAP CD 19 templates
+# Url: https://github.com/jboss-container-images/jboss-eap-7-openshift-image/tree/eap-cd/templates
+
+# Templates
+oc apply -f templates -n openshift
+# ImageStream
+oc apply -f imagestream -n openshift
+
+echo EAP CD 20 imagestreams and templates installed

@@ -77,5 +77,5 @@ func runSetup(cmd *cobra.Command, args []string) {
 			"Please continue with setting pre-requisites through manual process.")
 	}
 
-	fmt.Println("\n\nConsider checking getting started guide at https://docs.okd.io/latest/minishift/getting-started/index.html")
+	fmt.Println("\n\nConsider checking getting started guide at https://access.redhat.com/documentation/en-us/red_hat_container_development_kit/3.9/html-single/getting_started_guide/.")
 }

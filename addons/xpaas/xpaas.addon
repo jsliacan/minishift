@@ -3,9 +3,6 @@
 # Url: https://github.com/openshift/openshift-ansible/tree/release-3.11/roles/openshift_examples/files/examples/latest
 # Required-Vars: OPENSHIFT_VERSION
 # Var-Defaults: OPENSHIFT_VERSION=3.11
-# Depends-On: redhat-registry-login
-
-echo Info: Xpaas addon depends on redhat-registry-login and has to be applied after the redhat-registry-login is applied.
 
 # Image Streams
 oc apply -f v#{OPENSHIFT_VERSION}/xpaas-streams -n openshift

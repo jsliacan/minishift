@@ -18,6 +18,7 @@ package version
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -30,13 +31,37 @@ import (
 	"github.com/minishift/minishift/pkg/minikube/constants"
 	minishiftConstants "github.com/minishift/minishift/pkg/minishift/constants"
 	"github.com/minishift/minishift/pkg/minishift/docker"
+	"github.com/minishift/minishift/pkg/util"
 	"github.com/minishift/minishift/pkg/util/github"
 	"github.com/minishift/minishift/pkg/version"
 )
 
+type registryData struct {
+	Name string `json:"name"`
+	Tags []string `json:"tags"`
+}
+
 func GetOpenshiftVersion(sshCommander provision.SSHCommander) (string, error) {
 	dockerCommander := docker.NewVmDockerCommander(sshCommander)
 	return dockerCommander.Exec(" ", minishiftConstants.OpenshiftContainerName, "openshift", "version")
+}
+
+func PrintDownstreamVersions(output io.Writer, minSupportedVersion string) error {
+	data, err := GetOCPTags()
+	if err != nil {
+		return err
+	}
+
+	fmt.Fprint(output, "The following OpenShift versions are available: \n")
+	releaseList, err := OCPTagsByAscending(data, minSupportedVersion)
+	if err != nil {
+		return err
+	}
+
+	for _, tag := range releaseList {
+		fmt.Fprintf(output, "\t- %s\n", tag)
+	}
+	return nil
 }
 
 // PrintUpstreamVersions prints the origin versions which satisfies the following conditions:
@@ -150,4 +175,58 @@ func sortTagsViaSemverSort(tags []string) []string {
 	}
 
 	return tagsInStrings
+}
+
+func GetOCPTags() ([]string, error) {
+	resp, err := getResponseBody("https://registry.access.redhat.com/v2/openshift3/ose/tags/list")
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	decoder := json.NewDecoder(resp.Body)
+	var data registryData
+	err = decoder.Decode(&data)
+	if err != nil {
+		return nil, errors.New(fmt.Sprintf("%T\n%s\n%#v\n", err, err, err))
+	}
+	return data.Tags, nil
+}
+
+func OCPTagsByAscending(data []string, minSupportedVersion string) ([]string, error) {
+	var tagsList []string
+
+	for _, version := range data {
+		// skip version containing more than 3 dots since they are not symantic verson (vMajor.Minor.Patch)
+		// also skip version containing -
+		if strings.Count(version, ".") == 2 && !strings.Contains(version, "-") {
+			version = strings.TrimPrefix(version, constants.VersionPrefix)
+			minSupportedVersion = strings.TrimPrefix(minSupportedVersion, constants.VersionPrefix)
+
+			version, err := semver.Make(version)
+			if err != nil {
+				return []string{}, err
+			}
+			minSupportedVersion, err := semver.Make(minSupportedVersion)
+			if err != nil {
+				return []string{}, err
+			}
+
+			if version.GE(minSupportedVersion) {
+				if strings.Contains(version.String(), "latest") {
+					continue
+				}
+				if strings.Contains(version.String(), "-") {
+					continue
+				}
+				// skip version which are invalid (not present in https://mirror.openshift.com/pub/openshift-v3/clients/)
+				if !util.IsOcpVersionAvailable(version.String()) {
+					continue
+				}
+				tagsList = append(tagsList, version.String())
+			}
+		}
+	}
+
+	return sortTagsViaSemverSort(tagsList), nil
 }

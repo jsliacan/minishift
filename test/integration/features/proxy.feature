@@ -16,8 +16,9 @@ Feature: Minishift can run behind proxy
    Given user starts proxy server and sets MINISHIFT_HTTP_PROXY variable
      And image caching is disabled
     When executing "minishift start" succeeds
-    Then proxy log should contain "Accepting CONNECT to registry-1.docker.io:443"
-     And proxy log should contain "Accepting CONNECT to auth.docker.io:443"
+    Then proxy log should contain "Accepting CONNECT to subscription.rhsm.redhat.com:443"
+     And proxy log should contain "Accepting CONNECT to access.redhat.com:443"
+     And proxy log should contain "Accepting CONNECT to registry.access.redhat.com:443"
 
   Scenario: Proxy environmental variable is set in created VM
     When executing "minishift ssh -- cat /etc/profile.d/proxy.sh" succeeds

@@ -17,77 +17,10 @@ limitations under the License.
 package version
 
 import (
-	"errors"
-	"io/ioutil"
-	"os"
 	"testing"
 
-	"github.com/minishift/minishift/pkg/minikube/constants"
-	"github.com/minishift/minishift/pkg/util/github"
-	"github.com/minishift/minishift/pkg/version"
 	"github.com/stretchr/testify/assert"
 )
-
-func TestPrintUpstreamVersions(t *testing.T) {
-	EnsureGitHubApiAccessTokenSet(t)
-	testDir, err := ioutil.TempDir("", "minishift-config-")
-	assert.NoError(t, err)
-	defer os.RemoveAll(testDir)
-
-	f, err := os.Create(testDir + "out.txt")
-	assert.NoError(t, err)
-	defer f.Close()
-
-	os.Stdout = f
-	defaultVersion := version.GetOpenShiftVersion()
-	err = PrintUpstreamVersions(f, constants.MinimumSupportedOpenShiftVersion, defaultVersion)
-	assert.NoError(t, err)
-
-	_, err = f.Seek(0, 0)
-	assert.NoError(t, err, "Error setting offset back")
-	data, err := ioutil.ReadAll(f)
-	assert.NoError(t, err)
-	actualStdout := string(data)
-	assert.Contains(t, actualStdout, constants.MinimumSupportedOpenShiftVersion)
-	assert.Contains(t, actualStdout, defaultVersion)
-}
-
-func EnsureGitHubApiAccessTokenSet(t *testing.T) {
-	if github.GetGitHubApiToken() == "" {
-		t.Skip("Skipping GitHub API based test, because no access token is defined in the environment.\n " +
-			"To run this test check https://help.github.com/articles/creating-a-personal-access-token-for-the-command-line/ and set for example MINISHIFT_GITHUB_API_TOKEN (see github.go).")
-	}
-}
-
-func TestIsGreaterOrEqualToBaseVersion(t *testing.T) {
-	var versionTestData = []struct {
-		openshiftVersion     string
-		baseOpenshiftVersion string
-		expectedResult       bool
-		expectedErr          error
-	}{
-		{"v3.6.0", "v3.7.0", false, nil},
-		{"v3.6.0-alpha.1", "v3.6.0-alpha.2", false, nil},
-		{"v3.7.1", "v3.7.1", true, nil},
-		{"v3.6.0-rc1", "v3.6.0-alpha.1", true, nil},
-		{"v3.6.0-alpha.1", "v3.6.0-beta.0", false, nil},
-		{"v1.4.1", "v1.4.1", true, nil},
-		{"v1.5.0-alpha.0", "v1.4.1", true, nil},
-		{"v1.5.1-beta.0", "v1.4.1", true, nil},
-		{"foo", "v1.4.1", false, errors.New("Invalid version format 'foo': No Major.Minor.Patch elements found")},
-		{"151", "v1.4.1", false, errors.New("Invalid version format '151': No Major.Minor.Patch elements found")},
-	}
-
-	for _, versionTest := range versionTestData {
-		actualResult, actualErr := IsGreaterOrEqualToBaseVersion(versionTest.openshiftVersion, versionTest.baseOpenshiftVersion)
-
-		assert.Equal(t, versionTest.expectedResult, actualResult)
-
-		if actualErr != nil {
-			assert.EqualError(t, actualErr, versionTest.expectedErr.Error())
-		}
-	}
-}
 
 func TestIsPrerelease(t *testing.T) {
 	var versionTestData = []struct {

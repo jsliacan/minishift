@@ -91,14 +91,14 @@ func runUpdate(cmd *cobra.Command, args []string) {
 	}
 
 	if versionToUpdate.Major > currentVersion.Major {
-		fmt.Println("The latest version is not compatible with the current version. Follow the uninstallation procedure at https://docs.okd.io/latest/minishift/getting-started/uninstalling.html#uninstall-instructions.")
+		fmt.Println("The latest version is not compatible with the current version. Follow the uninstallation procedure at https://access.redhat.com/documentation/en-us/red_hat_container_development_kit/3.9/html-single/getting_started_guide/#uninstall-minishift.")
 	}
 
 	performUpdate(currentVersion, versionToUpdate)
 }
 
 func init() {
-	RootCmd.AddCommand(updateCmd)
+	//RootCmd.AddCommand(updateCmd)
 	updateCmd.Flags().AddFlag(cmdutil.HttpProxyFlag)
 	updateCmd.Flags().AddFlag(cmdutil.HttpsProxyFlag)
 	updateCmd.Flags().BoolVarP(&force, updateForceFlag, "f", false, "Force update the binary.")

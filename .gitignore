@@ -3,6 +3,9 @@
 *.a
 *.so
 
+# 'setup-cdk' output
+setup-cdk
+
 # Folders
 _obj
 _test

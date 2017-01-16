@@ -91,6 +91,10 @@ var RootCmd = &cobra.Command{
 
 		constants.KubeConfigPath = filepath.Join(state.InstanceDirs.Machines, constants.MachineName+"_kubeconfig")
 
+		if cmd.Name() != "version" {
+			runAndValidateSetupCDK()
+		}
+
 		if !filehelper.Exists(state.InstanceDirs.Addons) {
 			isAddonInstallRequired = true
 		}
@@ -455,5 +459,30 @@ func checkForValidProfileOrExit(cmd *cobra.Command) {
 				atexit.ExitWithMessage(1, fmt.Sprintf("Profile '%s' doesn't exist, Use 'minishift profile set %s' or 'minishift start --profile %s' to create", constants.ProfileName, constants.ProfileName, constants.ProfileName))
 			}
 		}
+	}
+
+}
+
+func cdkMarkerFileExists(markerPath string) bool {
+	if _, err := os.Stat(markerPath); os.IsNotExist(err) {
+		return false
+	}
+	return true
+}
+
+func runAndValidateSetupCDK() {
+	// Get the cdkmarker file path for default profile
+	cdkMarkerForDefaultProfile := filepath.Join(constants.GetMinishiftHomeDir(), CDKMarker)
+	if constants.DefaultProfileName != constants.ProfileName {
+		// Only proceed with SetupCDK() when setup-cdk is run for the deafult profile
+		// This will keep the behaviour similar to older CDK versions
+		if cdkMarkerFileExists(cdkMarkerForDefaultProfile) && !cdkMarkerFileExists(constants.MakeMiniPath(CDKMarker)) {
+			SetupCDK()
+		}
+	}
+	// Incase setup-cdk is not executed for the default profile
+	// User need to run setup-cdk once to keep the behaviour as the older releases
+	if !cdkMarkerFileExists(cdkMarkerForDefaultProfile) {
+		SetupCDKMessage()
 	}
 }

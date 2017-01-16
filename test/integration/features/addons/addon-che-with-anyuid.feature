@@ -23,7 +23,7 @@ Feature: Che add-on in combination with anyuid addon.
   Scenario: Che is ready
     Given Minishift has state "Running"
      When executing "oc project mini-che" succeeds
-     Then service "che" rollout successfully within "10m"
+     Then service "che" rollout successfully within "20m"
 
   Scenario: Che API is accessible
      When user tries to get the che api endpoint

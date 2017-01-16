@@ -38,6 +38,8 @@ import (
 	"github.com/minishift/minishift/pkg/util/os/atexit"
 	"github.com/spf13/viper"
 
+	"bytes"
+	"github.com/golang/glog"
 	cmdUtil "github.com/minishift/minishift/cmd/minishift/cmd/util"
 	minishiftNetwork "github.com/minishift/minishift/pkg/minishift/network"
 	openshiftVersion "github.com/minishift/minishift/pkg/minishift/openshift/version"
@@ -47,7 +49,7 @@ import (
 const (
 	StorageDisk           = "/mnt/?da1"
 	StorageDiskForGeneric = "/"
-	GithubAddress         = "https://github.com"
+	GithubAddress         = "https://mirror.openshift.com"
 )
 
 // preflightChecksBeforeStartingHost is executed before the startHost function.
@@ -55,8 +57,8 @@ func preflightChecksBeforeStartingHost() {
 	if shouldPreflightChecksBeSkipped() {
 		return
 	}
-	driverErrorMessage := "See the 'Setting Up the Virtualization Environment' topic (https://docs.okd.io/latest/minishift/getting-started/setting-up-virtualization-environment.html) for more information"
-	prerequisiteErrorMessage := "See the 'Installing Prerequisites for Minishift' topic (https://docs.okd.io/latest/minishift/getting-started/installing.html#install-prerequisites) for more information"
+	driverErrorMessage := "See the 'Setting Up the Virtualization Environment' topic (https://access.redhat.com/documentation/en-us/red_hat_container_development_kit/3.9/html-single/getting_started_guide/#setup-virtualization-environment) for more information"
+	prerequisiteErrorMessage := "See the 'Installing Prerequisites for Minishift' topic (https://access.redhat.com/documentation/en-us/red_hat_container_development_kit/3.9/html-single/getting_started_guide/#install-prerequisites) for more information"
 
 	preflightCheckSucceedsOrFails(
 		configCmd.SkipDeprecationCheck.Name,
@@ -73,7 +75,7 @@ func preflightChecksBeforeStartingHost() {
 		fmt.Printf("OK\n")
 		preflightCheckSucceedsOrFails(
 			configCmd.SkipCheckOpenShiftRelease.Name,
-			checkOriginRelease,
+			checkOCPRelease,
 			fmt.Sprintf("Checking if requested OpenShift version '%s' is valid", requestedOpenShiftVersion),
 			configCmd.WarnCheckOpenShiftRelease.Name,
 			"",
@@ -303,6 +305,12 @@ func checkDeprecation() bool {
 		fmt.Println("\n   Use of HYPERV_VIRTUAL_SWITCH has been deprecated\n   Please use: minishift config set hyperv-virtual-switch", switchValue)
 		return false
 	}
+
+	if viper.IsSet(configCmd.OcpFlag.Name) {
+		fmt.Println("\n   Use of --ocp-tag is going to deprecate from next version i.e v3.8\n   Please use '--openshift-version' flag.")
+		return false
+	}
+
 	return true
 }
 
@@ -659,4 +667,23 @@ func checkPoshOnPath() bool {
 		return false
 	}
 	return true
+}
+
+// checkOCPRelease return true if specified version of OpenShift is released
+func checkOCPRelease() bool {
+	version, err := cmdUtil.GetOpenShiftReleaseVersion()
+	if err != nil {
+		if glog.V(2) {
+			fmt.Println("Error in checking OCP Release: ", err)
+		}
+	}
+	buff := bytes.NewBufferString("")
+	openshiftVersion.PrintDownstreamVersions(buff, constants.MinimumSupportedOpenShiftVersion)
+
+	matched, _ := regexp.MatchString(version, buff.String())
+	if matched {
+		return true
+	}
+
+	return false
 }

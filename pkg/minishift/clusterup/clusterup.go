@@ -19,12 +19,12 @@ package clusterup
 import (
 	"errors"
 	"fmt"
+	"os"
+	"strings"
 
 	"github.com/docker/machine/libmachine/host"
 	"github.com/docker/machine/libmachine/provision"
 	"github.com/golang/glog"
-	"os"
-	"strings"
 
 	configCmd "github.com/minishift/minishift/cmd/minishift/cmd/config"
 	"github.com/minishift/minishift/pkg/minikube/kubeconfig"

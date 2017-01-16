@@ -18,15 +18,15 @@ package cache
 
 import (
 	"io/ioutil"
-	"net/http"
 	"os"
 	"path/filepath"
-	"runtime"
 	"testing"
 
 	"github.com/minishift/minishift/pkg/minikube/constants"
 	minitesting "github.com/minishift/minishift/pkg/testing"
 	"github.com/stretchr/testify/assert"
+	"net/http"
+	"runtime"
 )
 
 var (
@@ -38,7 +38,7 @@ func TestIsCached(t *testing.T) {
 	setUp(t)
 	defer os.RemoveAll(testDir)
 
-	ocDir := filepath.Join(testDir, "cache", "oc", "v1.3.1", runtime.GOOS)
+	ocDir := filepath.Join(testDir, "cache", "oc", "v3.7.9", runtime.GOOS)
 	os.MkdirAll(ocDir, os.ModePerm)
 
 	assert.False(t, testOc.isCached())
@@ -63,7 +63,7 @@ func TestCacheOc(t *testing.T) {
 
 	defer minitesting.ResetDefaultRoundTripper()
 
-	ocDir := filepath.Join(testDir, "cache", "oc", "v1.3.1")
+	ocDir := filepath.Join(testDir, "cache", "oc", "v3.7.9")
 	os.MkdirAll(ocDir, os.ModePerm)
 
 	err := testOc.cacheOc()
@@ -76,46 +76,30 @@ func setUp(t *testing.T) {
 	if err != nil {
 		t.Error()
 	}
-	testOc = Oc{"v1.3.1", filepath.Join(testDir, "cache")}
+	testOc = Oc{"v3.7.9", filepath.Join(testDir, "cache")}
 }
 
 func addMockResponses(mockTransport *minitesting.MockRoundTripper) {
 	testDataDir := filepath.Join("..", "..", "..", "test", "testdata")
 
-	mockTransport.RegisterResponse("https://api.github.com/repos/openshift/origin/releases/tags/v1.3.1", &minitesting.CannedResponse{
+	url := "https://mirror.openshift.com/pub/openshift-v3/clients/3.7.9/linux/oc.tar.gz$"
+	mockTransport.RegisterResponse(url, &minitesting.CannedResponse{
 		ResponseType: minitesting.SERVE_FILE,
-		Response:     filepath.Join(testDataDir, "openshift-1.3.1-release-tag.json"),
-		ContentType:  minitesting.JSON,
+		Response:     filepath.Join(testDataDir, "oc-3.7.9-linux.tar.gz"),
+		ContentType:  minitesting.OCTET_STREAM,
 	})
 
-	var assetContent string
-	switch runtime.GOOS {
-	case "windows":
-		assetContent = filepath.Join(testDataDir, "openshift-origin-client-tools-v1.3.1-dad658de7465ba8a234a4fb40b5b446a45a4cee1-windows.zip")
-		mockTransport.RegisterResponse("https://api.github.com/repos/openshift/origin/releases/assets/2489312", &minitesting.CannedResponse{
-			ResponseType: minitesting.SERVE_FILE,
-			Response:     assetContent,
-			ContentType:  minitesting.OCTET_STREAM,
-		})
-	case "darwin":
-		assetContent = filepath.Join(testDataDir, "openshift-origin-client-tools-v1.3.1-2748423-mac.zip")
-		mockTransport.RegisterResponse("https://api.github.com/repos/openshift/origin/releases/assets/2586147", &minitesting.CannedResponse{
-			ResponseType: minitesting.SERVE_FILE,
-			Response:     assetContent,
-			ContentType:  minitesting.OCTET_STREAM,
-		})
-	case "linux":
-		assetContent = filepath.Join(testDataDir, "openshift-origin-client-tools-v1.3.1-dad658de7465ba8a234a4fb40b5b446a45a4cee1-linux-64bit.tar.gz")
-		mockTransport.RegisterResponse("https://api.github.com/repos/openshift/origin/releases/assets/2489310", &minitesting.CannedResponse{
-			ResponseType: minitesting.SERVE_FILE,
-			Response:     assetContent,
-			ContentType:  minitesting.OCTET_STREAM,
-		})
-	}
-
-	mockTransport.RegisterResponse("https://api.github.com/repos/openshift/origin/releases/assets/2489308", &minitesting.CannedResponse{
+	url = "https://mirror.openshift.com/pub/openshift-v3/clients/3.7.9/macosx/oc.tar.gz$"
+	mockTransport.RegisterResponse(url, &minitesting.CannedResponse{
 		ResponseType: minitesting.SERVE_FILE,
-		Response:     filepath.Join(testDataDir, "CHECKSUM"),
-		ContentType:  minitesting.TEXT,
+		Response:     filepath.Join(testDataDir, "oc-3.7.9-darwin.tar.gz"),
+		ContentType:  minitesting.OCTET_STREAM,
+	})
+
+	url = "https://mirror.openshift.com/pub/openshift-v3/clients/3.7.9/windows/oc.zip$"
+	mockTransport.RegisterResponse(url, &minitesting.CannedResponse{
+		ResponseType: minitesting.SERVE_FILE,
+		Response:     filepath.Join(testDataDir, "oc-3.7.9-windows.zip"),
+		ContentType:  minitesting.OCTET_STREAM,
 	})
 }

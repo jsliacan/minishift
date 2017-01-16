@@ -18,10 +18,14 @@ package util
 
 import (
 	"fmt"
+	"github.com/minishift/minishift/pkg/util/ocpdownload"
+	"golang.org/x/net/html"
 	"io"
+	"net/http"
 	"os"
 	"os/user"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -173,4 +177,63 @@ func IsAdministrativeUser() bool {
 	return u.Uid == "1" ||
 		username == "root" ||
 		strings.Contains(username, "administrator")
+}
+
+// getHref parses the token and return the href attribute
+func getHref(t html.Token) (bool, string) {
+	var (
+		ok   bool
+		href string
+	)
+
+	// Iterate over all of the Token's attributes until we find an "href"
+	for _, a := range t.Attr {
+		if a.Key == "href" {
+			href = a.Val
+			ok = true
+		}
+	}
+
+	return ok, href
+}
+
+// IsOcpVersionAvailable parses the OpenShift mirror url and gets a list of ocp versions
+// from anchor tags(href) and matches the specified version.
+// Return true if version is matched else false.
+func IsOcpVersionAvailable(version string) bool {
+	resp, err := http.Get(ocpdownload.OpenShiftMirrorURL)
+	if err != nil {
+		return false
+	}
+	b := resp.Body
+	defer b.Close()
+
+	z := html.NewTokenizer(b)
+	for {
+		tt := z.Next()
+
+		switch {
+		case tt == html.ErrorToken:
+			// End of the HTML document, return false since we couldn't find specified version
+			return false
+		case tt == html.StartTagToken:
+			t := z.Token()
+
+			// Check if the token is an <a> tag
+			if t.Data != "a" {
+				continue
+			}
+
+			// Extract the href value, if there is one
+			ok, href := getHref(t)
+			if !ok {
+				continue
+			}
+
+			match, _ := regexp.Match(fmt.Sprintf("^%s/$", version), []byte(href))
+			if match {
+				return true
+			}
+		}
+	}
 }

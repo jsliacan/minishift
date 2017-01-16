@@ -17,13 +17,14 @@ limitations under the License.
 package cache
 
 import (
-	"github.com/minishift/minishift/pkg/minikube/constants"
-	"github.com/minishift/minishift/pkg/util/github"
-	minishiftos "github.com/minishift/minishift/pkg/util/os"
-	"github.com/pkg/errors"
 	"os"
 	"path/filepath"
 	"runtime"
+
+	"github.com/minishift/minishift/pkg/minikube/constants"
+	"github.com/minishift/minishift/pkg/util/ocpdownload"
+	minishiftos "github.com/minishift/minishift/pkg/util/os"
+	"github.com/pkg/errors"
 )
 
 const OC_CACHE_DIR = "oc"
@@ -59,8 +60,8 @@ func (oc *Oc) isCached() bool {
 // cacheOc downloads and caches the oc binary into the minishift directory
 func (oc *Oc) cacheOc() error {
 	if !oc.isCached() {
-		if err := github.DownloadOpenShiftReleaseBinary(github.OC, minishiftos.CurrentOS(), oc.OpenShiftVersion, oc.GetCacheFilepath()); err != nil {
-			return errors.Wrapf(err, "Error attempting to download and cache '%s'", github.OC.String())
+		if err := ocpdownload.DownloadOcpBinary(oc.OpenShiftVersion, constants.OC_BINARY_NAME, minishiftos.CurrentOS(), oc.GetCacheFilepath()); err != nil {
+			return errors.Wrapf(err, "Error attempting to download and cache oc")
 		}
 	}
 	return nil

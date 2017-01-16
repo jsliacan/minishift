@@ -40,7 +40,6 @@ import (
 	minishiftConstants "github.com/minishift/minishift/pkg/minishift/constants"
 	openshiftVersion "github.com/minishift/minishift/pkg/minishift/openshift/version"
 	"github.com/minishift/minishift/pkg/util/shell"
-	"github.com/minishift/minishift/pkg/version"
 	flag "github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )
@@ -52,9 +51,9 @@ var (
 		"xpaas",
 		"registry-route",
 		"che",
+		"eap-cd",
 		"htpasswd-identity-provider",
 		"admissions-webhook",
-		"redhat-registry-login",
 	}
 )
 
@@ -181,12 +180,12 @@ func GetOpenShiftReleaseVersion() (string, error) {
 	tag := viper.GetString(configCmd.OpenshiftVersion.Name)
 	// tag is in the form of vMajor.minor.patch e.g v3.9.0
 	if tag == fmt.Sprintf("%slatest", constants.VersionPrefix) {
-		tags, err := openshiftVersion.GetGithubReleases()
+		data, err := openshiftVersion.GetOCPTags()
 		if err != nil {
 			return "", err
 		}
 
-		sortedtags, err := openshiftVersion.OpenShiftTagsByAscending(tags, constants.MinimumSupportedOpenShiftVersion, version.GetOpenShiftVersion())
+		sortedtags, err := openshiftVersion.OCPTagsByAscending(data, constants.MinimumSupportedOpenShiftVersion)
 		if err != nil {
 			return "", err
 		}

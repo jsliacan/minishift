@@ -15,9 +15,9 @@ Feature: Basic image caching test
      """
      When executing "minishift start" succeeds
       And image export completes with 3 images within "20m"
-      And container image "openshift\/origin-haproxy-router:v[0-9]+\.[0-9]+\.[0-9]+" is cached
-      And container image "openshift\/origin-docker-registry:v[0-9]+\.[0-9]+\.[0-9]+" is cached
-      And container image "openshift\/origin-control-plane:v[0-9]+\.[0-9]+\.[0-9]+" is cached
+      And container image "registry\.access\.redhat\.com\/openshift3\/ose-docker-registry:v[0-9]\.[0-9]+\.[0-9]+" is cached
+      And container image "registry\.access\.redhat\.com\/openshift3\/ose-haproxy-router:v[0-9]\.[0-9]+\.[0-9]+" is cached
+      And container image "registry\.access\.redhat\.com\/openshift3\/ose-control-plane:v[0-9]\.[0-9]+\.[0-9]+" is cached
       And executing "minishift image export alpine:latest" succeeds
      Then stdout of command "minishift image list" contains "alpine:latest"
 
@@ -40,9 +40,9 @@ Feature: Basic image caching test
      """
 
      When executing "minishift start" succeeds
-     Then stdout should match "Importing 'openshift\/origin-control-plane:v[0-9]+\.[0-9]+\.[0-9]+' [\.]+ OK"
-      And stdout should match "Importing 'openshift\/origin-docker-registry:v[0-9]+\.[0-9]+\.[0-9]+' [\.]+ OK"
-      And stdout should match "Importing 'openshift\/origin-haproxy-router:v[0-9]+\.[0-9]+\.[0-9]+' [\.]+ OK"
+     Then stdout should match "Importing 'registry\.access\.redhat\.com\/openshift3\/ose-control-plane:v[0-9]\.[0-9]+\.[0-9]+' [\.]+ OK"
+      And stdout should match "Importing 'registry\.access\.redhat\.com\/openshift3\/ose-docker-registry:v[0-9]\.[0-9]+\.[0-9]+' [\.]+ OK"
+      And stdout should match "Importing 'registry\.access\.redhat\.com\/openshift3\/ose-haproxy-router:v[0-9]\.[0-9]+\.[0-9]+' [\.]+ OK"
 
      When executing "minishift image list --vm" succeeds
      Then stdout should not contain "alpine:latest"

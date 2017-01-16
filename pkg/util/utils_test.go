@@ -26,9 +26,16 @@ import (
 	"testing"
 	"time"
 
+	minitesting "github.com/minishift/minishift/pkg/testing"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"io/ioutil"
+	"net/http"
+)
+
+var (
+	_, b, _, _ = runtime.Caller(0)
+	basepath   = filepath.Dir(b)
 )
 
 // Returns a function that will return n errors, then return successfully forever.
@@ -215,4 +222,39 @@ func isAppVeyorUser() bool {
 	// Checking for $env:APPVEYOR does not work !
 	u, _ := user.Current()
 	return strings.Contains(u.Username, "appveyor")
+}
+
+func TestValidOcpVersionAvailable(t *testing.T) {
+	testVersion := "3.7.23"
+	mockTransport := minitesting.NewMockRoundTripper()
+	addMockResponses(mockTransport)
+
+	client := http.DefaultClient
+	client.Transport = mockTransport
+	defer minitesting.ResetDefaultRoundTripper()
+
+	assert.True(t, IsOcpVersionAvailable(testVersion))
+}
+
+func TestInValidOcpVersionAvailable(t *testing.T) {
+	testVersion := "1.1.1"
+	mockTransport := minitesting.NewMockRoundTripper()
+	addMockResponses(mockTransport)
+
+	client := http.DefaultClient
+	client.Transport = mockTransport
+	defer minitesting.ResetDefaultRoundTripper()
+
+	assert.False(t, IsOcpVersionAvailable(testVersion))
+}
+
+func addMockResponses(mockTransport *minitesting.MockRoundTripper) {
+	testDataDir := filepath.Join(basepath, "..", "..", "test", "testdata")
+
+	url := "https://mirror.openshift.com/pub/openshift-v3/clients/$"
+	mockTransport.RegisterResponse(url, &minitesting.CannedResponse{
+		ResponseType: minitesting.SERVE_FILE,
+		Response:     filepath.Join(testDataDir, "mirror_openshift_com.html"),
+		ContentType:  minitesting.OCTET_STREAM,
+	})
 }

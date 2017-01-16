@@ -43,7 +43,6 @@ func preflightChecksForArtifacts() {
 func checkOcFlag() bool {
 	clusterUpParams := determineInitialClusterupParameters()
 	for _, key := range clusterUpParams {
-
 		// no need to check for extra-clusterup-flags as it is a minishift specific flag
 		if key == configCmd.ExtraClusterUpFlags.Name {
 			continue

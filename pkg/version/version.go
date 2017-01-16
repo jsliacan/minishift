@@ -37,6 +37,9 @@ var (
 
 	// The SHA-1 of the commit this binary is build off
 	commitSha = "sha-unset"
+
+	// The default version of the CDK
+	cdkVersion = "v0.0.0-unset"
 )
 
 func GetMinishiftVersion() string {
@@ -57,4 +60,8 @@ func GetCentOsIsoVersion() string {
 
 func GetCommitSha() string {
 	return commitSha
+}
+
+func GetCDKVersion() string {
+	return cdkVersion
 }

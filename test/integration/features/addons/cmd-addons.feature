@@ -12,7 +12,6 @@ Feature: Addons command and its subcommands
       And stdout should match "che\s*: disabled\s*P\(0\)"
       And stdout should match "htpasswd-identity-provider\s*: disabled\s*P\(0\)"
       And stdout should match "admissions-webhook\s*: disabled\s*P\(0\)"
-      And stdout should match "redhat-registry-login\s*: disabled\s*P\(0\)"
 
   @minishift-only @quick
   Scenario: Verbose listing of add-ons installed by default
@@ -81,7 +80,7 @@ Feature: Addons command and its subcommands
      When executing "minishift addons install --defaults" succeeds
      Then stdout should contain
       """
-      Default add-ons 'anyuid, admin-user, xpaas, registry-route, che, htpasswd-identity-provider, admissions-webhook, redhat-registry-login' installed
+      Default add-ons 'anyuid, admin-user, xpaas, registry-route, che, eap-cd, htpasswd-identity-provider, admissions-webhook' installed
       """
      When executing "minishift addons list" succeeds
      Then stdout should contain "admin-user"
@@ -90,6 +89,8 @@ Feature: Addons command and its subcommands
      Then stdout should contain "xpaas"
      Then stdout should contain "che"
      Then stdout should contain "htpasswd-identity-provider"
+     Then stdout should contain "eap-cd"
+     Then stdout should contain "admissions-webhook"
 
   @minishift-only @quick
   Scenario: Default add-ons are not enabled by default during installation
@@ -100,6 +101,7 @@ Feature: Addons command and its subcommands
       And stdout should match "xpaas\s*: disabled\s*P\(0\)"
       And stdout should match "che\s*: disabled\s*P\(0\)"
       And stdout should match "htpasswd-identity-provider\s*: disabled\s*P\(0\)"
+      And stdout should match "admissions-webhook\s*: disabled\s*P\(0\)"
 
   @quick
   Scenario: Enabling not installed add-on

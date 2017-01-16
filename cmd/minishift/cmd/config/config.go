@@ -43,12 +43,16 @@ var settingsList []Setting
 
 var (
 	// minishift
-	ISOUrl                = createConfigSetting("iso-url", SetString, []setFn{validations.IsValidISOUrl}, []setFn{RequiresRestartMsg}, true, nil)
-	CPUs                  = createConfigSetting("cpus", SetInt, []setFn{validations.IsPositive}, []setFn{RequiresRestartMsg}, true, nil)
-	Memory                = createConfigSetting("memory", SetString, []setFn{validations.IsValidMemorySize}, []setFn{RequiresRestartMsg}, true, nil)
-	DiskSize              = createConfigSetting("disk-size", SetString, []setFn{validations.IsValidDiskSize}, []setFn{RequiresRestartMsg}, true, nil)
-	VmDriver              = createConfigSetting("vm-driver", SetString, []setFn{validations.IsValidDriver}, []setFn{RequiresRestartMsg}, true, nil)
-	OpenshiftVersion      = createConfigSetting("openshift-version", SetString, nil, nil, true, nil)
+	ISOUrl           = createConfigSetting("iso-url", SetString, []setFn{validations.IsValidISOUrl}, []setFn{RequiresRestartMsg}, true, nil)
+	CPUs             = createConfigSetting("cpus", SetInt, []setFn{validations.IsPositive}, []setFn{RequiresRestartMsg}, true, nil)
+	Memory           = createConfigSetting("memory", SetString, []setFn{validations.IsValidMemorySize}, []setFn{RequiresRestartMsg}, true, nil)
+	DiskSize         = createConfigSetting("disk-size", SetString, []setFn{validations.IsValidDiskSize}, []setFn{RequiresRestartMsg}, true, nil)
+	VmDriver         = createConfigSetting("vm-driver", SetString, []setFn{validations.IsValidDriver}, []setFn{RequiresRestartMsg}, true, nil)
+	OpenshiftVersion = createConfigSetting("openshift-version", SetString, nil, nil, true, nil)
+
+	// TODO: Deprecate in next release i.e v3.8
+	OcpFlag = createConfigSetting("ocp-tag", SetString, nil, nil, true, nil)
+
 	HostOnlyCIDR          = createConfigSetting("host-only-cidr", SetString, []setFn{validations.IsValidCIDR}, nil, true, nil)
 	DockerEnv             = createConfigSetting("docker-env", SetSlice, nil, nil, true, nil)
 	DockerEngineOpt       = createConfigSetting("docker-opt", SetSlice, nil, nil, true, nil)

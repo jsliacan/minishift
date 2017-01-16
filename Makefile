@@ -14,13 +14,19 @@
 
 # Various versions - Minishift, default OpenShift, default CentOS ISO
 MINISHIFT_VERSION = 1.34.3
-OPENSHIFT_VERSION = v3.11.0
+OPENSHIFT_VERSION = v3.11.69
 CENTOS_ISO_VERSION = v1.17.0
 COMMIT_SHA=$(shell git rev-parse --short HEAD)
+LATEST_MINISHIFT_SHA = $(shell git merge-base HEAD release)
+COMMIT_SHA = $(shell git rev-parse --short $(LATEST_MINISHIFT_SHA))
 
 # Go and compilation related variables
 BUILD_DIR ?= out
 INTEGRATION_TEST_DIR = $(CURDIR)/$(BUILD_DIR)/test-run
+
+# CDK related version variables
+CDK_VERSION = 3.8.0-dev
+BUILD_NO = 1
 
 GOOS ?= $(shell go env GOOS)
 GOARCH ?= $(shell go env GOARCH)
@@ -29,6 +35,7 @@ REPOPATH ?= $(ORG)/minishift
 ifeq ($(GOOS),windows)
 	IS_EXE := .exe
 endif
+
 MINISHIFT_BINARY ?= $(GOPATH)/bin/minishift$(IS_EXE)
 TIMEOUT ?= 10800s
 PACKAGES := go list ./... | grep -v /vendor | grep -v /out
@@ -41,12 +48,13 @@ TEST_WITH_SPECIFIED_SHELL ?=
 VERSION_VARIABLES := -X $(REPOPATH)/pkg/version.minishiftVersion=$(MINISHIFT_VERSION) \
 	-X $(REPOPATH)/pkg/version.centOsIsoVersion=$(CENTOS_ISO_VERSION) \
 	-X $(REPOPATH)/pkg/version.openshiftVersion=$(OPENSHIFT_VERSION) \
-	-X $(REPOPATH)/pkg/version.commitSha=$(COMMIT_SHA)
-LDFLAGS_SYSTEMTRAY := $(VERSION_VARIABLES) -s -w
+	-X $(REPOPATH)/pkg/version.commitSha=$(COMMIT_SHA) \
+	-X $(REPOPATH)/pkg/version.cdkVersion=$(CDK_VERSION)-$(BUILD_NO)
+LDFLAGS_SYSTEMTRAY := $(VERSION_VARIABLES) -s -w 
 LDFLAGS := $(LDFLAGS_SYSTEMTRAY) -extldflags='-static'
 # Build tags atm mainly required to compile containers/image from which we only need OCI and Docker daemon transport. See issue #952
-BUILD_TAGS=containers_image_openpgp containers_image_ostree_stub exclude_graphdriver_btrfs exclude_graphdriver_devicemapper exclude_graphdriver_overlay containers_image_storage_stub
-# Systemtray build tag used to exclude the tray source files from building
+BUILD_TAGS=containers_image_openpgp containers_image_storage_stub containers_image_ostree_stub exclude_graphdriver_devicemapper exclude_graphdriver_btrfs exclude_graphdriver_overlay
+# Systemtray build tag used to exclude the tray source files from building 
 BUILD_TAGS_SYSTEMTRAY=$(BUILD_TAGS) systemtray
 
 # Setup for go-bindata to include binary assets
@@ -65,6 +73,24 @@ DOC_VARIABLES = -e OPENSHIFT_VERSION=$(OPENSHIFT_VERSION) -e MINISHIFT_VERSION=$
 # MISC
 START_COMMIT_MESSAGE_VALIDATION = 80f5d01133f4e662f0d84100836fad07d29ea329
 
+# CDK-46 Provide 'cdk-setup' command
+# Define directory structure for artifacts to be included in minishift binary
+CDK_SETUP_DIR := $(CURDIR)/setup-cdk
+CDK_SETUP_DATA := $(CDK_SETUP_DIR)/data
+CDK_SETUP_ASSET_DIR := $(CDK_SETUP_DIR)/bindata
+CDK_SETUP_ASSET := $(CDK_SETUP_ASSET_DIR)/cdk_setup_bindata.go
+
+# Directories for downloaded artifacts ISO + oc
+OC_BASE_URL := https://mirror.openshift.com/pub/openshift-v3/clients/`echo $(OPENSHIFT_VERSION) | sed 's/v//'`/
+OC_ARCHIVE_DIR := $(CDK_SETUP_DIR)/archives
+ISO_DIR := $(CDK_SETUP_DATA)/iso
+ISO := $(ISO_DIR)/minishift-rhel7.iso
+
+# For debugging purposes we can skip the inclusion of the binaries
+ifeq ($(BINDATA_DEBUG),true)
+	GO_BINDATA_DEBUG := -debug
+endif
+
 # Check that given variables are set and all have non-empty values,
 # die with an error otherwise.
 #
@@ -81,8 +107,39 @@ __check_defined = \
 # Start of the actual build targets
 
 .PHONY: $(GOPATH)/bin/minishift$(IS_EXE)
-$(GOPATH)/bin/minishift$(IS_EXE): $(ADDON_ASSET_FILE) ## Builds the binary into $GOPATH/bin
-	go install -tags "$(BUILD_TAGS_SYSTEMTRAY)" -pkgdir=$(ADDON_BINDATA_DIR) -ldflags="$(VERSION_VARIABLES)" ./cmd/minishift
+$(GOPATH)/bin/minishift$(IS_EXE): $(ADDON_ASSET_FILE) $(CDK_SETUP_ASSET) ## Builds the binary into $GOPATH/bin
+	go install -tags "$(BUILD_TAGS_SYSTEMTRAY)" -pkgdir=$(ADDON_BINDATA_DIR) -pkgdir=$(CDK_SETUP_ASSET_DIR) -ldflags="$(VERSION_VARIABLES)" ./cmd/minishift
+
+$(CDK_SETUP_DATA)/linux/oc:
+	@echo "Downloading oc linux binary"
+	@mkdir -p $(OC_ARCHIVE_DIR)/linux
+	@curl -k --progress-bar $(OC_BASE_URL)linux/oc.tar.gz -o $(OC_ARCHIVE_DIR)/linux/oc.tar.gz
+	@mkdir -p $(CDK_SETUP_DATA)/linux
+	@tar xf $(OC_ARCHIVE_DIR)/linux/oc.tar.gz -C $(CDK_SETUP_DATA)/linux
+
+$(CDK_SETUP_DATA)/darwin/oc:
+	@echo "Downloading oc darwin binary"
+	@mkdir -p $(OC_ARCHIVE_DIR)/darwin
+	@curl -k --progress-bar $(OC_BASE_URL)macosx/oc.tar.gz -o $(OC_ARCHIVE_DIR)/darwin/oc.tar.gz
+	@mkdir $(CDK_SETUP_DATA)/darwin
+	@tar xf $(OC_ARCHIVE_DIR)/darwin/oc.tar.gz -C $(CDK_SETUP_DATA)/darwin
+
+$(CDK_SETUP_DATA)/windows/oc.exe:
+	@echo "Downloading oc.exe windows binary"
+	@mkdir -p $(OC_ARCHIVE_DIR)/windows
+	@curl -k --progress-bar $(OC_BASE_URL)windows/oc.zip -o $(OC_ARCHIVE_DIR)/windows/oc.zip
+	@mkdir -p $(CDK_SETUP_DATA)/windows
+	@unzip -q $(OC_ARCHIVE_DIR)/windows/oc.zip -d $(CDK_SETUP_DATA)/windows
+
+$(ISO):
+	@:$(call check_defined, ISO_URL, "The build requires ISO_URL to be set and pointing to a RHEL ISO")
+	@mkdir -p $(ISO_DIR)
+	@echo "Downloading RHEL ISO"
+	@curl -k --progress-bar $(ISO_URL) -o $(ISO)
+
+$(CDK_SETUP_ASSET): $(ISO) $(CDK_SETUP_DATA)/linux/oc $(CDK_SETUP_DATA)/darwin/oc $(CDK_SETUP_DATA)/windows/oc.exe
+	@mkdir -p $(CDK_SETUP_ASSET_DIR)
+	go-bindata $(GO_BINDATA_DEBUG) -prefix $(CDK_SETUP_DATA) -o $(CDK_SETUP_ASSET) -pkg bindata $(CDK_SETUP_DATA)/...
 
 .PHONY: vendor
 vendor:
@@ -98,20 +155,20 @@ $(BUILD_DIR)/$(GOOS)-$(GOARCH):
 $(BUILD_DIR)/$(GOOS)-$(GOARCH)/systemtray:
 	mkdir -p $(BUILD_DIR)/$(GOOS)-$(GOARCH)/systemtray
 
-$(BUILD_DIR)/darwin-amd64/minishift: $(ADDON_ASSET_FILE) $(BUILD_DIR)/$(GOOS)-$(GOARCH) ## Cross compiles the darwin executable and places it in $(BUILD_DIR)/darwin-amd64/minishift
-	CGO_ENABLED=0 GOARCH=amd64 GOOS=darwin go build -tags "$(BUILD_TAGS_SYSTEMTRAY)" -pkgdir=$(ADDON_BINDATA_DIR) --installsuffix cgo -ldflags="$(LDFLAGS)" -o $(BUILD_DIR)/darwin-amd64/minishift ./cmd/minishift
+$(BUILD_DIR)/darwin-amd64/minishift: $(ADDON_ASSET_FILE) $(CDK_SETUP_ASSET) $(BUILD_DIR)/$(GOOS)-$(GOARCH) ## Cross compiles the darwin executable and places it in $(BUILD_DIR)/darwin-amd64/minishift
+	CGO_ENABLED=0 GOARCH=amd64 GOOS=darwin go build -tags "$(BUILD_TAGS_SYSTEMTRAY)" -pkgdir=$(CDK_SETUP_ASSET_DIR) --installsuffix cgo -ldflags="$(LDFLAGS)" -o $(BUILD_DIR)/darwin-amd64/minishift ./cmd/minishift
 
-$(BUILD_DIR)/linux-amd64/minishift: $(ADDON_ASSET_FILE) $(BUILD_DIR)/$(GOOS)-$(GOARCH) ## Cross compiles the linux executable and places it in $(BUILD_DIR)/linux-amd64/minishift
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -tags "$(BUILD_TAGS_SYSTEMTRAY)" -pkgdir=$(ADDON_BINDATA_DIR) --installsuffix cgo -ldflags="$(LDFLAGS)" -o $(BUILD_DIR)/linux-amd64/minishift ./cmd/minishift
+$(BUILD_DIR)/linux-amd64/minishift: $(ADDON_ASSET_FILE) $(CDK_SETUP_ASSET) $(BUILD_DIR)/$(GOOS)-$(GOARCH) ## Cross compiles the linux executable and places it in $(BUILD_DIR)/linux-amd64/minishift
+	CGO_ENABLED=0 GOARCH=amd64 GOOS=linux go build -tags "$(BUILD_TAGS_SYSTEMTRAY)" -pkgdir=$(CDK_SETUP_ASSET_DIR) --installsuffix cgo -ldflags="$(LDFLAGS)" -o $(BUILD_DIR)/linux-amd64/minishift ./cmd/minishift
 
-$(BUILD_DIR)/windows-amd64/minishift.exe: $(ADDON_ASSET_FILE) $(BUILD_DIR)/$(GOOS)-$(GOARCH) ## Cross compiles the windows executable and places it in $(BUILD_DIR)/windows-amd64/minishift
-	CGO_ENABLED=0 GOARCH=amd64 GOOS=windows go build -tags "$(BUILD_TAGS_SYSTEMTRAY)" -pkgdir=$(ADDON_BINDATA_DIR) --installsuffix cgo -ldflags="$(LDFLAGS)" -o $(BUILD_DIR)/windows-amd64/minishift.exe ./cmd/minishift
+$(BUILD_DIR)/windows-amd64/minishift.exe: $(ADDON_ASSET_FILE) $(CDK_SETUP_ASSET) $(BUILD_DIR)/$(GOOS)-$(GOARCH) ## Cross compiles the windows executable and places it in $(BUILD_DIR)/windows-amd64/minishift
+	CGO_ENABLED=0 GOARCH=amd64 GOOS=windows go build -tags "$(BUILD_TAGS_SYSTEMTRAY)" -pkgdir=$(CDK_SETUP_ASSET_DIR) --installsuffix cgo -ldflags="$(LDFLAGS)" -o $(BUILD_DIR)/windows-amd64/minishift.exe ./cmd/minishift
 
-$(BUILD_DIR)/darwin-amd64/systemtray/minishift: $(ADDON_ASSET_FILE) $(BUILD_DIR)/$(GOOS)-$(GOARCH)/systemtray ## Cross compiles the darwin executable with systemtray
-	CGO_ENABLED=1 GOARCH=amd64 GOOS=darwin go build -tags "$(BUILD_TAGS)" -pkgdir=$(ADDON_BINDATA_DIR) --installsuffix cgo -ldflags="$(LDFLAGS_SYSTEMTRAY)" -o $(BUILD_DIR)/darwin-amd64/systemtray/minishift ./cmd/minishift
+$(BUILD_DIR)/darwin-amd64/systemtray/minishift: $(ADDON_ASSET_FILE) $(CDK_SETUP_ASSET) $(BUILD_DIR)/$(GOOS)-$(GOARCH)/systemtray ## Cross compiles the darwin executable with systemtray
+	CGO_ENABLED=1 GOARCH=amd64 GOOS=darwin go build -tags "$(BUILD_TAGS)" -pkgdir=$(CDK_SETUP_ASSET) --installsuffix cgo -ldflags="$(LDFLAGS_SYSTEMTRAY)" -o $(BUILD_DIR)/darwin-amd64/systemtray/minishift ./cmd/minishift
 
-$(BUILD_DIR)/windows-amd64/systemtray/minishift.exe: $(ADDON_ASSET_FILE) $(BUILD_DIR)/$(GOOS)-$(GOARCH)/systemtray ## Cross compiles the windows executable with systemtray
-	CGO_ENABLED=0 GOARCH=amd64 GOOS=windows go build -tags "$(BUILD_TAGS)" -pkgdir=$(ADDON_BINDATA_DIR) --installsuffix cgo -ldflags="$(LDFLAGS_SYSTEMTRAY)" -o $(BUILD_DIR)/windows-amd64/systemtray/minishift.exe ./cmd/minishift
+$(BUILD_DIR)/windows-amd64/systemtray/minishift.exe: $(ADDON_ASSET_FILE) $(CDK_SETUP_ASSET) $(BUILD_DIR)/$(GOOS)-$(GOARCH)/systemtray ## Cross compiles the windows executable with systemtray
+	CGO_ENABLED=0 GOARCH=amd64 GOOS=windows go build -tags "$(BUILD_TAGS)" -pkgdir=$(CDK_SETUP_ASSET) --installsuffix cgo -ldflags="$(LDFLAGS_SYSTEMTRAY)" -o $(BUILD_DIR)/windows-amd64/systemtray/minishift.exe ./cmd/minishift
 
 $(GOPATH)/bin/gh-release:
 	go get -u github.com/progrium/gh-release/...
@@ -247,13 +304,14 @@ clean:
 	rm -rf $(BUILD_DIR)
 	rm -rf release
 	rm -f  $(DOCS_SYNOPISIS_DIR)/*.md
+	rm -rf $(CDK_SETUP_DIR)
 
 .PHONY: clean_bindata ## Remove $(ADDON_BINDATA_DIR)
 clean_bindata:
 	rm -rf $(ADDON_BINDATA_DIR)
 
 .PHONY: test
-test: $(ADDON_ASSET_FILE)  ## Run unit tests
+test: $(ADDON_ASSET_FILE) $(CDK_SETUP_ASSET)  ## Run unit tests
 	@go test -v -tags "$(BUILD_TAGS_SYSTEMTRAY)" -ldflags="$(VERSION_VARIABLES)" $(shell $(PACKAGES))
 
 .PHONY: coverage

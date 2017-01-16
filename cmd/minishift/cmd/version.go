@@ -35,7 +35,9 @@ var versionCmd = &cobra.Command{
 }
 
 func runPrintVersion(cmd *cobra.Command, args []string) {
-	fmt.Printf("minishift v%s+%s\n", version.GetMinishiftVersion(), version.GetCommitSha())
+	// IMPORTANT - JBIDE uses the version string to integrate with Minishift/CDK. The format cannot change without discussion
+	// See also https://issues.jboss.org/browse/CDK-150 and https://issues.jboss.org/browse/JBIDE-24682
+	fmt.Println(fmt.Sprintf("minishift v%s+%s\nCDK v%s", version.GetMinishiftVersion(), version.GetCommitSha(), version.GetCDKVersion()))
 }
 
 func init() {

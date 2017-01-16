@@ -6,7 +6,7 @@ Feature: Basic
      When executing "minishift addons install --defaults" succeeds
      Then stdout should contain
       """
-      Default add-ons 'anyuid, admin-user, xpaas, registry-route, che, htpasswd-identity-provider, admissions-webhook, redhat-registry-login' installed
+      Default add-ons 'anyuid, admin-user, xpaas, registry-route, che, eap-cd, htpasswd-identity-provider, admissions-webhook' installed
       """
 
   Scenario: User can enable the anyuid add-on
@@ -28,7 +28,7 @@ Feature: Basic
      Then Minishift should have state "Running"
       And stdout should contain
       """
-      --image 'openshift/origin-${component}
+      --image 'registry.access.redhat.com/openshift3/ose-${component}
       """
 
   Scenario: User can verify empty image list
@@ -200,3 +200,4 @@ Feature: Basic
     Given Minishift has state "Stopped"
      When executing "minishift delete --force --clear-cache" succeeds
      Then Minishift should have state "Does Not Exist"
+

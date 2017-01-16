@@ -37,6 +37,8 @@ import (
 	"github.com/spf13/cobra"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
+	"io/ioutil"
+	"path/filepath"
 )
 
 var (
@@ -105,6 +107,24 @@ func runDelete(cmd *cobra.Command, args []string) {
 	fmt.Println("Minishift VM deleted.")
 }
 
+func clearUnwantedCacheFolder(path string) error {
+	files, err := ioutil.ReadDir(path)
+	if err != nil {
+		return err
+	}
+
+	for _, file := range files {
+		dirPath := file.Name()
+		if !(dirPath == "oc" || dirPath == "iso") {
+			if err := os.RemoveAll(filepath.Join(path, dirPath)); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
 func clearCache() {
 	if !forceFlag {
 		hasConfirmed := pkgUtil.AskForConfirmation("This will delete the cache content for all profiles.")
@@ -113,7 +133,7 @@ func clearCache() {
 		}
 	}
 	cachePath := state.InstanceDirs.Cache
-	err := os.RemoveAll(cachePath)
+	err := clearUnwantedCacheFolder(cachePath)
 	if err != nil {
 		atexit.ExitWithMessage(1, fmt.Sprintf("Error deleting Minishift cache: %v", err))
 	} else {

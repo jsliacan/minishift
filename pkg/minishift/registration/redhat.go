@@ -64,7 +64,7 @@ func (registrator *RedHatRegistrator) CompatibleWithDistribution(osReleaseInfo *
 
 // Register attempts to register the system with RHSM and registry.redhat.io
 func (registrator *RedHatRegistrator) Register(param *RegistrationParameters) error {
-	keyringDocsLink := "https://docs.okd.io/latest/minishift/troubleshooting/troubleshooting-misc.html#Remove-password-from-keychain"
+	keyringDocsLink := "https://access.redhat.com/documentation/en-us/red_hat_container_development_kit/3.9/html-single/getting_started_guide/#remove-password-from-keychain"
 	if isRegistered, err := registrator.IsRegistered(); !isRegistered && err == nil {
 		for i := 1; i < 4; i++ {
 			// request username (disallow empty value)

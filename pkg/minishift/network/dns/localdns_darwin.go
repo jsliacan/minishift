@@ -21,7 +21,7 @@ import (
 )
 
 func handleHostDNSSettingsAfterStart(ipAddress string) (bool, error) {
-	fmt.Println("For making it work on offline mode, please look at http://docs.okd.io/latest/minishift/using/experimental-features.html#local-dns-setup-macos")
+	fmt.Println("For making it work on offline mode, please look at https://access.redhat.com/documentation/en-us/red_hat_container_development_kit/3.9/html-single/getting_started_guide/#local-dns-server.")
 	fmt.Println(fmt.Sprintf("Add a file /etc/resolver/nip.io, containing: nameserver %s\nsearch_order 1", ipAddress))
 
 	return true, nil

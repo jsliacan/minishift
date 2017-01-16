@@ -35,7 +35,8 @@ const (
 	BinaryName                     = "minishift"
 	OcPathInsideVM                 = "/var/lib/minishift/bin"
 	BaseDirInsideInstance          = "/var/lib/minishift/base"
-	ImageNameForClusterUpImageFlag = "openshift/origin-${component}"
+	CDKRegistryTemplate            = "registry.access.redhat.com/openshift3/ose"
+	ImageNameForClusterUpImageFlag = "registry.access.redhat.com/openshift3/ose-${component}"
 	HypervDefaultVirtualSwitchId   = "c08cb7b8-9b3c-408e-8e30-5e16a3aeb444"
 	HypervDefaultVirtualSwitchName = "Default Switch"
 	DockerbridgeSubnetCmd          = `docker network inspect -f "{{range .IPAM.Config }}{{ .Subnet }}{{end}}" bridge`
@@ -62,7 +63,7 @@ func ProfilePrivateKeyPath() string {
 }
 
 func GetOpenshiftImageToFetchOC(openshiftVersion string) string {
-	return fmt.Sprintf("openshift/origin-control-plane:%s", openshiftVersion)
+	return fmt.Sprintf("%s-control-plane:%s", CDKRegistryTemplate, openshiftVersion)
 }
 
 // GetInstanceStateConfigPath return the path of instance config json file

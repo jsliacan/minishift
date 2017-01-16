@@ -18,6 +18,7 @@ package cmd
 
 import (
 	"os"
+	"path"
 	"reflect"
 	"testing"
 
@@ -96,6 +97,10 @@ func TestPreRunDirectories(t *testing.T) {
 	defer os.RemoveAll(testDir)
 
 	constants.Minipath = testDir
+
+	// Create marker file to make sure this test runs
+	createCDKMarker(testDir)
+
 	cli.RunCommand(RootCmd.PersistentPreRun)
 
 	dirPaths := reflect.ValueOf(*state.InstanceDirs)
@@ -148,4 +153,20 @@ func TestInitializeProfile(t *testing.T) {
 		got := initializeProfile()
 		assert.Equal(t, testInput.Result, got)
 	}
+}
+
+func TestCDKMarkerFileExist(t *testing.T) {
+	// Make sure we create the required directories.
+	tempDir, err := ioutil.TempDir("", "minishift-test-start-cmd-")
+	if err != nil {
+		t.Error(err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	found := cdkMarkerFileExists(path.Join(tempDir, CDKMarker))
+	assert.True(t, found, "Marker file should not have existed.")
+
+	createCDKMarker(tempDir)
+	found = cdkMarkerFileExists(path.Join(tempDir, CDKMarker))
+	assert.False(t, found, "Marker file should have exist.")
 }
