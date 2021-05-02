@@ -50,7 +50,7 @@ Feature: Basic
     After startup of Minishift OpenShift instance should respond correctly on its html endpoints
     and OpenShift web console should be accessible.
     Given Minishift has state "Running"
-     Then with up to "10" retries with wait period of "6s" container name "k8s_webconsole_webconsole" should be "running"
+     Then with up to "30" retries with wait period of "6s" container name "k8s_webconsole_webconsole" should be "running"
       And "status code" of HTTP request to "/healthz" of OpenShift instance is equal to "200"
       And "body" of HTTP request to "/healthz" of OpenShift instance contains "ok"
       And with up to "10" retries with wait period of "2s" the "status code" of HTTP request to "/console" of OpenShift instance is equal to "200"
@@ -155,7 +155,7 @@ Feature: Basic
       And executing "oc new-app centos/ruby-22-centos7~https://github.com/sclorg/ruby-ex.git" succeeds
       And executing "oc expose svc/ruby-ex" succeeds
       And executing "oc set probe dc/ruby-ex --readiness --get-url=http://:8080" succeeds
-      And service "ruby-ex" rollout successfully within "20m"
+      And service "ruby-ex" rollout successfully within "30m"
      Then with up to "5" retries with wait period of "1s" the "status code" of HTTP request to "/" of service "ruby-ex" in namespace "ruby" is equal to "200"
       And with up to "5" retries with wait period of "1s" the "body" of HTTP request to "/" of service "ruby-ex" in namespace "ruby" contains "Welcome to your Ruby application on OpenShift"
 
